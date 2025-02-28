@@ -1,2 +1,20 @@
-{ "id": 1, "name": "Кроссовки", "price": 4500, "category":
-"Одежда" }
+[
+  {
+    "id": 1,
+    "name": "Кроссовки",
+    "price": 4500,
+    "categories": [
+      "Одежда"
+    ],
+    "description": "Крутые Кроссовки"
+  },
+  {
+    "id": 2,
+    "name": "drr",
+    "price": "33",
+    "description": "rrrrrr",
+    "categories": [
+      "rrr"
+    ]
+  }
+]

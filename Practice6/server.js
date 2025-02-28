@@ -1,13 +1,14 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require('fs')
 
 const app = express();
 const PORT = 3000;
 
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const dataFilePath = path.join(__dirname, 'products.json');
+const dataFilePath = path.join(__dirname, './products.json');
 
 
 // Swagger документация
@@ -73,10 +74,11 @@ app.post('/products', (req, res) => {
         id: products.length > 0 ? products[products.length - 1].id + 1 : 1,
         name: req.body.name,
         price: req.body.price,
-        category: req.body.category
+        description: req.body.description,
+        categories: req.body.categories
     };
     products.push(newProduct);
-    writeData(products); // Сохраняем в JSON
+    writeData(products);
     res.status(201).json(newProduct);
 });
 
