@@ -2,6 +2,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs')
+const WebSocket = require('ws'); // Подключаем WebSocket
+
+const { ApolloServer, gql } = require('apollo-server-express'); // Добавляем GraphQL
+
 
 const app = express();
 const PORT = 3000;
@@ -9,7 +13,6 @@ const PORT = 3000;
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const dataFilePath = path.join(__dirname, './products.json');
-
 
 // Swagger документация
 const swaggerOptions = {
@@ -49,6 +52,30 @@ const readData = () => {
 const writeData = (data) => {
     fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf8');
 };
+
+const typeDefs = gql`
+  type Product {
+    id: ID!
+    name: String!
+    price: Float!
+    description: String
+    categories: [String]
+  }
+
+  type Query {
+    products: [Product]
+    product(id: ID!): Product
+  }
+`;
+
+const resolvers = {
+    Query: {
+        products: () => readData(), 
+        product: (_, { id }) => readData().find(p => p.id == id),
+    }
+};
+
+const server = new ApolloServer({ typeDefs, resolvers });
 
 app.use(express.static(path.join(__dirname, '../Practice5')));
 
@@ -121,6 +148,39 @@ app.delete('/products/:id', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log("Server is running on http://localhost:", PORT);
-});
+
+async function startServer() {
+    await server.start();
+    server.applyMiddleware({ app });
+
+    app.listen(PORT, () => {
+        console.log(`GraphQL API запущен на http://localhost:${PORT}/graphql`);
+        console.log(`Swagger API Docs: http://localhost:${PORT}/api-docs`);
+    });
+
+    const wss = new WebSocket.Server({ port: 8080 }); // WebSocket-сервер на порту 8080
+
+    wss.on('connection', (ws) => {
+        console.log('Новое подключение к WebSocket серверу');
+
+        ws.on('message', (message) => {
+            console.log('📩 Сообщение получено:', message.toString());
+        
+            // Отправляем сообщение всем клиентам в формате JSON
+            wss.clients.forEach(client => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({ text: message.toString() })); // Отправляем JSON
+                }
+            });
+        });        
+
+        ws.on('close', () => {
+            console.log('Клиент отключился');
+        });
+    });
+
+    console.log('WebSocket сервер запущен на ws://localhost:8080');
+}
+
+startServer(); // Запуск сервера
+

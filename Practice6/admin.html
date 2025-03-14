@@ -12,6 +12,50 @@
     </style>
 </head>
 <body>
+    <script>
+
+        function displayMessage(message) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageElement = document.createElement('p');
+            try{
+                const data = JSON.parse(message);
+                messageElement.textContent = data.message;
+            } catch (error) {
+                messageElement.textContent = message
+            }            
+            chatContainer.appendChild(messageElement);
+        }
+
+        const socket = new WebSocket('ws://localhost:8080');
+
+        socket.onopen = () => {
+            console.log('Админ подключен к WebSocket серверу');
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data); // Преобразуем JSON-строку в объект
+                displayMessage(data.text); // Отображаем только текст сообщения
+            } catch (error) {
+                console.error('Ошибка обработки сообщения:', error);
+            }
+        };
+
+        socket.onclose = () => {
+            console.log('WebSocket соединение закрыто');
+        };
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (message) {
+                socket.send(JSON.stringify({message})); // Теперь отправляем JSON
+                input.value = '';
+            }
+        }
+
+    </script>
 
 <h2>Добавить новый товар</h2>
 <form id="productForm">
@@ -24,6 +68,14 @@
 
 <h2>Список товаров</h2>
 <div id="productList"></div>
+
+<section id="chat">
+    <h2>Чат поддержки</h2>
+    <div id="chatContainer"></div>
+    <input type="text" id="chatInput" placeholder="Введите сообщение...">
+    <button onclick="sendMessage()">Отправить</button>
+</section>
+
 
 <script>
 const API_URL = "http://localhost:3000/products";

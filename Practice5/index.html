@@ -12,36 +12,106 @@
     </style>
 </head>
 <body>
+    <script>
+        const socket = new WebSocket('ws://localhost:8080'); // Подключаемся к серверу
+
+        socket.onopen = () => {
+            console.log('Подключено к WebSocket серверу');
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data); // Преобразуем JSON-строку в объект
+                displayMessage(data.text); // Отображаем только текст сообщения
+            } catch (error) {
+                console.error('Ошибка обработки сообщения:', error);
+            }
+        };
+
+
+        socket.onclose = () => {
+            console.log('WebSocket соединение закрыто');
+        };
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (message) {
+                socket.send(JSON.stringify({message})); // Теперь отправляем JSON
+                input.value = '';
+            }
+        }
+
+        function displayMessage(message) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageElement = document.createElement('p');
+            try{
+                const data = JSON.parse(message);
+                messageElement.textContent = data.message;
+            } catch (error) {
+                messageElement.textContent = message
+            }            
+            chatContainer.appendChild(messageElement);
+        }
+
+
+    </script>
 
 <h1>Каталог товаров</h1>
 <div id="productList" class="container"></div>
 
+<section id="chat">
+    <h2>Чат поддержки</h2>
+    <div id="chatContainer"></div>
+    <input type="text" id="chatInput" placeholder="Введите сообщение...">
+    <button onclick="sendMessage()">Отправить</button>
+</section>
+
+
 <script>
-const API_URL = "http://localhost:3000/products";
+const API_URL = "http://localhost:3000/graphql";
 
-function loadProducts() {
-    fetch(API_URL)
-        .then(response => response.json())
-        .then(products => {
-            const productList = document.getElementById("productList");
-            productList.innerHTML = "";
+async function loadProducts() {
+    const query = `
+    {
+      products {
+        name
+        price
+        categories
+      }
+    }`;
+  
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+        });
 
-            products.forEach(product => {
-                const productElement = document.createElement("div");
-                productElement.classList.add("product");
+        const result = await response.json();
+        const products = result.data.products;
 
-                productElement.innerHTML = `
-                    <h2>${product.name}</h2>
-                    <p><strong>Цена:</strong> ${product.price} руб.</p>
-                    <p><strong>Описание:</strong> ${product.description || "Нет описания"}</p>
-                    <p><strong>Категории:</strong> ${product.categories?.join(", ") || "Не указаны"}</p>
-                `;
+        const productList = document.getElementById("productList");
+        productList.innerHTML = "";
 
-                productList.appendChild(productElement);
-            });
-        })
-        .catch(error => console.error("Ошибка при загрузке товаров:", error));
+        products.forEach(product => {
+            const productElement = document.createElement("div");
+            productElement.classList.add("product");
+
+            productElement.innerHTML = `
+                <h2>${product.name}</h2>
+                <p><strong>Цена:</strong> ${product.price} руб.</p>
+                <p><strong>Категории:</strong> ${product.categories?.join(", ") || "Не указаны"}</p>
+            `;
+
+            productList.appendChild(productElement);
+        });
+    } catch (error) {
+        console.error("Ошибка при загрузке товаров:", error);
+    }
 }
+
 
 loadProducts();
 </script>
